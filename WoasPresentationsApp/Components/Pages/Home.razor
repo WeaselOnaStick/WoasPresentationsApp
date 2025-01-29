@@ -1,0 +1,49 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+@inject ISessionStorageService storage
+@inject NavigationManager navManager
+
+<h1>Hello, what's your name?</h1>
+
+<form onsubmit="@SimpleRegister">
+    <input type="text" title="Username" @bind-value="UserName"/>
+    <button type="submit">Submit</button>
+</form>
+
+@if (errorMsg != null) {
+    <p style="color: red">@errorMsg</p>
+}
+
+@code {
+    private string errorMsg = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender){
+            var username = storage.GetItem<string>("username");
+            Console.WriteLine(username == null ? "Fresh meat!" : $"Welcome {username}");
+            if (username != null)
+                SimpleLogin();
+        }
+    }
+
+    public string UserName;
+
+    public async Task SimpleRegister(){
+        if (UserName.Trim(' ') == ""){
+            errorMsg = "Username can't be empty!";
+            return;
+        }
+        storage.SetItem<string>("username", UserName);
+
+        SimpleLogin();
+    }
+
+    public void SimpleLogin()
+    {
+
+        navManager.NavigateTo("/presenters_hub");
+    }
+
+}

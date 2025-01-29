@@ -1,0 +1,46 @@
+﻿@page "/presenters_hub"
+@inject ISessionStorageService storage
+@inject NavigationManager navManager
+
+@rendermode InteractiveWebAssembly
+
+<h3>Hub</h3>
+
+@foreach (var m in messages)
+{
+    <p>@m</p>
+}
+
+@code {
+    private HubConnection hubCon;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+
+        hubCon = new HubConnectionBuilder().WithUrl(navManager.ToAbsoluteUri("/hub")).Build();
+
+        var myname = storage.GetItem<string>("username");
+        if (myname == null) ReturnUnregistered();
+
+        hubCon.On<string>("NewMessage", (m) =>
+        {
+            messages.Add(m);
+            StateHasChanged();
+        });
+
+        hubCon.SendAsync("NewUserReport", myname);
+
+        await hubCon.StartAsync();
+    }
+
+    void ReturnUnregistered(){
+        navManager.NavigateTo("/");
+    }
+
+    List<string> messages = new List<string>();
+
+
+
+}

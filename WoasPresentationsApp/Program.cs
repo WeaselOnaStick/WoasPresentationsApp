@@ -5,8 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddSignalR();
 
@@ -35,7 +35,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddInteractiveServerRenderMode()
+    .AddInteractiveServerRenderMode(o => o.DisableWebSocketCompression = true)
     .AddAdditionalAssemblies(typeof(WoasPresentationsApp.Client._Imports).Assembly);
+
 
 app.Run();

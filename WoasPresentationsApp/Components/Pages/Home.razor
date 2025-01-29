@@ -1,6 +1,5 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Identity
 @inject ISessionStorageService storage
 @inject NavigationManager navManager
 
@@ -21,7 +20,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender){
-            var username = storage.GetItem<string>("username");
+            var username = await storage.GetItemAsync<string>("username");
             Console.WriteLine(username == null ? "Fresh meat!" : $"Welcome {username}");
             if (username != null)
                 SimpleLogin();
@@ -35,7 +34,7 @@
             errorMsg = "Username can't be empty!";
             return;
         }
-        storage.SetItem<string>("username", UserName);
+        await storage.SetItemAsync<string>("username", UserName);
 
         SimpleLogin();
     }
@@ -43,7 +42,7 @@
     public void SimpleLogin()
     {
 
-        navManager.NavigateTo("/presenters_hub");
+        navManager.NavigateTo("/presenters");
     }
 
 }

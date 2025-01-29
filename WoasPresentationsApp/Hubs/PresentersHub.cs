@@ -8,5 +8,10 @@ namespace WoasPresentationsApp.Hubs
         {
             await Clients.All.SendAsync("NewMessage", $"Everyone welcome {name}!");
         }
+
+        public async Task Announce(string message)
+        {
+            await Clients.All.SendAsync("NewMessage", message);
+        }
     }
 }

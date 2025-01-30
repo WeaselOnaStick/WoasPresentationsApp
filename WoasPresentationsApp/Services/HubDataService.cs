@@ -2,7 +2,7 @@
 {
     public class HubDataService
     {
-        private Dictionary<string,string> usernames = new Dictionary<string,string>();
+        public Dictionary<string,string> usernames = new Dictionary<string,string>();
 
         public void AddUser(string connectionID, string username)
         {

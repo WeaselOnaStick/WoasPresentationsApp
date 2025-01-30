@@ -14,6 +14,7 @@ namespace WoasPresentationsApp.Hubs
 
         public async Task NewUserReport(string name)
         {
+            if (_hubDataService.usernames.ContainsValue(name)) return;
             _hubDataService.AddUser(Context.ConnectionId, name);
             await Clients.All.SendAsync("NewMessage", $"Everyone welcome {name}!");
             await Clients.All.SendAsync("ListOfUsers", _hubDataService.GetUsers());

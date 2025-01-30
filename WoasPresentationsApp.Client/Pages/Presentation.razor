@@ -1,7 +1,76 @@
-﻿@inject NavigationManager navManager
+﻿@page "/presentation/{presenter_username}"
 
-<h3>Presentation</h3>
+@inject NavigationManager navManager
+@using Excubo.Blazor.Canvas
+@using System.Security.Cryptography
+@using Excubo.Blazor.Canvas.Contexts
+@rendermode InteractiveWebAssembly
+
+<script src="_content/Blazor.Extensions.Canvas/blazor.extensions.canvas.js"></script>
+
+<h3>Presentation by @presenter_username</h3>
+
+<div class="canvas-container">
+    <Canvas @ref="canvas" width="600px" height="300px" 
+    @onmousedown=OnCanvasMouseDown
+    @onmouseup=OnCanvasMouseUp
+    @onmousemove=OnCanvasMouseMove/>
+</div>
+
+<br />
+<a href="/presenters" style="button">Back to Hub</a>
+<br />
+<p>
+    @debugText
+</p>
 
 @code {
+    [Parameter]
+    public string presenter_username { get; set; }
 
+    public string debugText;
+
+    private Canvas canvas;
+    private Context2D ctx;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ctx = await canvas.GetContext2DAsync();
+            await ctx.FontAsync("48px solid");
+            await ctx.FillTextAsync("Hello", 0, 150); 
+            await ctx.SetTransformAsync(1, 0, 0, 1, -10, -70);
+            await ctx.RestoreAsync();
+            await ctx.SaveAsync();
+        }
+    }
+
+    bool path_started = false;
+
+    private async Task OnCanvasMouseDown(MouseEventArgs e)
+    {
+        debugText = $"Starting line... ({e.ClientX},{e.ClientY})";
+        path_started = true;
+        StateHasChanged();
+        await ctx.MoveToAsync(e.ClientX, e.ClientY);
+    }
+
+    private async Task OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (path_started){
+            debugText = $"Moving to ({e.ClientX},{e.ClientY})";
+            StateHasChanged();
+            await ctx.LineToAsync(e.ClientX, e.ClientY);
+        }
+    }
+
+
+    private async Task OnCanvasMouseUp(MouseEventArgs e)
+    {
+        await ctx.StrokeStyleAsync("black");
+        await ctx.StrokeAsync();
+        path_started = false;
+        StateHasChanged();
+    }
 }

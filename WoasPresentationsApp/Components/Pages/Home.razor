@@ -30,18 +30,16 @@
     public string UserName;
 
     public async Task SimpleRegister(){
-        if (UserName.Trim(' ') == ""){
+        if (UserName == null || UserName.Trim(' ') == ""){
             errorMsg = "Username can't be empty!";
             return;
         }
-        await storage.SetItemAsync<string>("username", UserName);
-
+        await storage.SetItemAsync<string>("username", UserName.Trim(' '));
         SimpleLogin();
     }
 
     public void SimpleLogin()
     {
-
         navManager.NavigateTo("/presenters");
     }
 

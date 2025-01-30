@@ -1,5 +1,6 @@
 using WoasPresentationsApp.Components;
 using WoasPresentationsApp.Hubs;
+using WoasPresentationsApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddSignalR();
+
+builder.Services.AddSingleton<HubDataService>();
 
 builder.Services.AddSessionStorageServices();
 

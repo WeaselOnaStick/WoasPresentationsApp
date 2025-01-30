@@ -7,10 +7,12 @@
 
 <h3>Hub</h3>
 
-@foreach (var m in messages)
-{
-    <p>@m</p>
-}
+<ul>
+    @foreach (var username in usersList)
+    {
+        <li>@username</li>
+    }
+</ul>
 
 @if (hubCon != null && hubCon?.State != HubConnectionState.Connected)
 {
@@ -18,11 +20,18 @@
 }
 @if (hubCon != null && hubCon?.State == HubConnectionState.Connected)
 {
-    <button @onclick="SendGarbage"></button>
+    <button @onclick="SendGarbage">Submit garbage</button>
+}
+
+@foreach (var m in messages)
+{
+    <p>@m</p>
 }
 
 @code {
     private HubConnection hubCon;
+
+    private List<string> usersList = new List<string>();
     List<string> messages = new List<string>();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -30,7 +39,13 @@
         if (!firstRender) return;
 
 
-        hubCon = new HubConnectionBuilder().WithUrl(navManager.ToAbsoluteUri("/presenters_hub")).Build();
+        hubCon = new HubConnectionBuilder()
+            .WithUrl(navManager.ToAbsoluteUri("/presenters_hub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging((l) => {
+                l.SetMinimumLevel(LogLevel.Trace);
+            })
+            .Build();
 
         var myname = await storage.GetItemAsync<string>("username");
         if (myname == null) ReturnUnregistered();
@@ -41,9 +56,19 @@
             StateHasChanged();
         });
 
-        hubCon.SendAsync("NewUserReport", myname);
+
+        hubCon.On<List<string>>("ListOfUsers", (lu) => 
+        { 
+            usersList = lu;
+            StateHasChanged();
+        });
 
         await hubCon.StartAsync();
+        
+        
+        await hubCon.SendAsync("NewUserReport", myname);
+        
+        await hubCon.SendAsync("GetListOfUsers");
         StateHasChanged();
     }
 
@@ -51,8 +76,8 @@
         navManager.NavigateTo("/");
     }
 
-    public void SendGarbage(){
-        hubCon.SendAsync("Announce", RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", RandomNumberGenerator.GetInt32(8, 17)));
+    public async Task SendGarbage(){
+        await hubCon.SendAsync("Announce", RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", RandomNumberGenerator.GetInt32(8, 17)));
         StateHasChanged();
     }
 

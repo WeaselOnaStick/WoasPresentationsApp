@@ -1,6 +1,7 @@
 ﻿@page "/presentation/{presenter_username}"
 
 @inject NavigationManager navManager
+@inject ISessionStorageService storage
 @using Excubo.Blazor.Canvas
 @using System.Security.Cryptography
 @using Excubo.Blazor.Canvas.Contexts
@@ -10,39 +11,100 @@
 
 <h3>Presentation by @presenter_username</h3>
 
-<div class="canvas-container">
+<div class="presentation-container">
     <Canvas @ref="canvas" width="600px" height="300px" 
     @onmousedown=OnCanvasMouseDown
     @onmouseup=OnCanvasMouseUp
-    @onmousemove=OnCanvasMouseMove/>
+    @onmousemove=OnCanvasMouseMove
+    hidden="@hideCanvas"
+    />
+
+
+    <img src="@presentersImageURL" style="background-color:white" class="presentation-projector" hidden="@hideProjector"/>
+
 </div>
 
 <br />
 <a href="/presenters" style="button">Back to Hub</a>
 <br />
-<p>
-    @debugText
-</p>
 
 @code {
     [Parameter]
     public string presenter_username { get; set; }
+    public string presentersImageURL = "";
+
+    public bool hideCanvas;
+    public bool hideProjector;
+
+    private string myname;
 
     public string debugText;
+    public string debugText2;
 
     private Canvas canvas;
     private Context2D ctx;
+
+    private HubConnection hubCon;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            myname = await storage.GetItemAsync<string>("username");
+            if (myname == null) navManager.NavigateTo("/");
+
+
+            hideCanvas = (myname != presenter_username);
+            hideProjector = !hideCanvas;
+
+            debugText2 = "Getting Canvas Context...";
+            StateHasChanged();
+
             ctx = await canvas.GetContext2DAsync();
-            await ctx.FontAsync("48px solid");
-            await ctx.FillTextAsync("Hello", 0, 150); 
+
+
             await ctx.SetTransformAsync(1, 0, 0, 1, -10, -70);
             await ctx.RestoreAsync();
             await ctx.SaveAsync();
+
+            debugText2 = "Building Connection...";
+            StateHasChanged();
+
+            hubCon = new HubConnectionBuilder()
+                .WithUrl(navManager.ToAbsoluteUri("/presentation_hub"))
+                .WithAutomaticReconnect()
+                .ConfigureLogging((l) => {
+                    l.SetMinimumLevel(LogLevel.Trace);
+                    l.AddDebug();
+                })
+                .Build();
+
+            debugText2 = "Assigning first OnEvent...";
+            StateHasChanged();
+
+            hubCon.On<string>("CanvasByUsername", async (c) =>
+            {
+                debugText2 = $"Got Canvas Data: {c}";
+                presentersImageURL = c;
+                StateHasChanged();
+            });
+
+            debugText2 = "Assigning second OnEvent...";
+            StateHasChanged();
+
+            hubCon.On<string>("CanvasUpdated", async (c) =>
+            {
+                debugText2 = $"Got Canvas Data: {c}";
+                presentersImageURL = c;
+                StateHasChanged();
+            });
+
+            debugText2 = "Starting connection...";
+            StateHasChanged();
+
+            await hubCon.StartAsync();
+
+            await hubCon.SendAsync("GetCanvasByUsername", presenter_username);
         }
     }
 
@@ -50,17 +112,18 @@
 
     private async Task OnCanvasMouseDown(MouseEventArgs e)
     {
+        if (myname == null || myname != presenter_username) return;
+        await ctx.StrokeStyleAsync("red");
         debugText = $"Starting line... ({e.ClientX},{e.ClientY})";
         path_started = true;
-        StateHasChanged();
         await ctx.MoveToAsync(e.ClientX, e.ClientY);
     }
 
     private async Task OnCanvasMouseMove(MouseEventArgs e)
     {
+        if (myname == null || myname != presenter_username) return;
         if (path_started){
             debugText = $"Moving to ({e.ClientX},{e.ClientY})";
-            StateHasChanged();
             await ctx.LineToAsync(e.ClientX, e.ClientY);
         }
     }
@@ -68,9 +131,11 @@
 
     private async Task OnCanvasMouseUp(MouseEventArgs e)
     {
-        await ctx.StrokeStyleAsync("black");
-        await ctx.StrokeAsync();
+        if (myname == null || myname != presenter_username) return;
+        
+        await ctx.StrokeAsync(); 
+        await ctx.SaveAsync();
         path_started = false;
-        StateHasChanged();
+        await hubCon.SendAsync("UpdateCanvasToEveryoneElse", presenter_username, await canvas.ToDataURLAsync("image/png"));
     }
 }

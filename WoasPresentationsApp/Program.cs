@@ -32,6 +32,7 @@ else
 app.UseHttpsRedirection();
 
 app.MapHub<PresentersHub>("/presenters_hub");
+app.MapHub<PresentationHub>("/presentation_hub");
 
 app.UseAntiforgery();
 
